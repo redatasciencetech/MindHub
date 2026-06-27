@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindHub - Meu Hub de Estudos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-emerald-500 selection:text-white">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- ================= PAINEL LATERAL (SIDEBAR) ================= -->
+        <aside class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 p-5 justify-between">
+            <div>
+                <div class="flex items-center gap-2 px-1 py-3 mb-5">
+                    <span class="text-2xl">🧠</span>
+                    <h1 class="text-xl font-bold tracking-tight text-slate-900">MindHub</h1>
+                </div>
+
+                <button onclick="adicionarCategoria()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-2 px-4 rounded-lg transition mb-6 flex items-center justify-center gap-2 text-sm shadow-sm">
+                    <span class="text-lg font-light">+</span> Nova Categoria
+                </button>
+
+                <!-- CONTEINER DAS CATEGORIAS (Injetado pelo JS) -->
+                <nav class="space-y-1">
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider px-2 mb-2">Minhas Trilhas</p>
+                    <div id="lista-categorias" class="space-y-1"></div>
+                </nav>
+            </div>
+
+            <div class="border-t border-slate-100 pt-4 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-slate-700">R</div>
+                <div>
+                    <p class="text-sm font-semibold text-slate-900">Seu Perfil</p>
+                    <p class="text-xs text-slate-400">Plano Cloud</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- ================= ÁREA DE CONTEÚDO PRINCIPAL ================= -->
+        <main class="flex-1 flex flex-col bg-slate-50 overflow-y-auto">
+            
+            <header class="flex items-center justify-between p-4 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+                <div class="flex items-center gap-2 md:hidden">
+                    <span class="text-xl">🧠</span>
+                    <h1 class="text-lg font-bold text-slate-900">MindHub</h1>
+                </div>
+                <div class="hidden md:block text-xs font-medium text-slate-400 uppercase tracking-wider">
+                    Dados simulados da Nuvem (Ambiente Isolado)
+                </div>
+                <button class="bg-white border border-slate-200 hover:bg-slate-50 text-xs font-medium py-1.5 px-3 rounded-md text-slate-600 transition shadow-sm">
+                    ⚙️ Configurações
+                </button>
+            </header>
+
+            <div class="max-w-4xl w-full mx-auto p-4 md:p-8 space-y-6">
+                
+                <!-- CABEÇALHO DINÂMICO -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div>
+                        <span class="text-xs font-bold text-emerald-600 uppercase tracking-wide block mb-1">Trilha de Estudos</span>
+                        <h2 id="titulo-categoria-ativa" class="text-2xl font-extrabold text-slate-900 flex items-center gap-2">
+                            <!-- Injetado pelo JS -->
+                        </h2>
+                    </div>
+                    
+                    <!-- BARRA DE PROGRESSO DINÂMICA -->
+                    <div class="w-full sm:w-64 space-y-1.5">
+                        <div class="flex justify-between text-xs font-semibold">
+                            <span class="text-slate-400">Progresso Geral</span>
+                            <span id="texto-progresso" class="text-emerald-600">0% concluído</span>
+                        </div>
+                        <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                            <div id="barra-progresso" class="bg-emerald-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between text-xs font-medium text-slate-400 uppercase tracking-wider border-b border-slate-200 pb-2 px-1">
+                    <span class="flex items-center gap-1">↕️ Sequência numérica estruturada baseada no banco de dados</span>
+                    <button onclick="adicionarConteudo()" class="text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 transition normal-case text-sm">
+                        + Adicionar Conteúdo
+                    </button>
+                </div>
+
+                <!-- LISTA DE CARDS DINÂMICOS (Injetado pelo JS) -->
+                <div id="lista-conteudos" class="space-y-3"></div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= LÓGICA EM JAVASCRIPT ================= -->
+    <script>
+        // 1. SIMULAÇÃO DOS DADOS DO BANCO (Simulando tabelas do Supabase)
+        // Imagine que esses dados pertencem apenas ao usuário logado (ex: user_id: 'user_rogerio')
+        let bancoCategorias = [
+            { id: 'cat_1', nome: 'Psicologia', icone: '🧠' },
+            { id: 'cat_2', nome: 'Neurociência', icone: '🧬' },
+            { id: 'cat_3', nome: 'Dev Pessoal', icone: '🚀' }
+        ];
+
+        let bancoConteudos = [
+            { id: '1', categoria_id: 'cat_1', titulo: 'Introdução à Psicologia Cognitiva', tipo: 'video', url: 'https://youtube.com...', autor: 'NeuroCiência Prática', metadado: '18 min', status: 'concluido', ordem: 1 },
+            { id: '2', categoria_id: 'cat_1', titulo: 'Artigo: O Cérebro, Gatilhos e Emoções Diárias', tipo: 'pdf', url: 'arquivo.pdf', autor: 'Dr. Silva', metadado: '14 págs', status: 'lendo', ordem: 2 },
+            { id: '3', categoria_id: 'cat_1', titulo: 'O Impacto do Hábito no Comportamento Humano', tipo: 'video', url: 'https://youtube.com...', autor: 'Desenvolvimento Humano', metadado: '42 min', status: 'pendente', ordem: 3 },
+            { id: '4', categoria_id: 'cat_2', titulo: 'Neuroplasticidade e Aprendizado', tipo: 'video', url: 'https://youtube.com...', autor: 'Mente Aberta', metadado: '30 min', status: 'pendente', ordem: 1 }
+        ];
+
+        // Estado da aplicação (Qual categoria está clicada no momento)
+        let categoriaAtivaId = 'cat_1';
+
+        // 2. FUNÇÃO PARA RENDERIZAR AS CATEGORIAS NA BARRA LATERAL
+        function renderizarCategorias() {
+            const container = document.getElementById('lista-categorias');
+            container.innerHTML = ''; // Limpa o container
+
+            bancoCategorias.forEach(cat => {
+                // Conta quantos itens essa categoria tem no banco
+                const totalItens = bancoConteudos.filter(item => item.categoria_id === cat.id).length;
+                
+                // Verifica se ela é a categoria selecionada para aplicar o estilo ativo
+                const ehAtiva = cat.id === categoriaAtivaId;
+                
+                const classeEstilo = ehAtiva 
+                    ? "flex items-center justify-between bg-emerald-50 text-emerald-700 px-3 py-2.5 rounded-lg font-medium transition cursor-pointer"
+                    : "flex items-center justify-between text-slate-600 hover:bg-slate-50 hover:text-slate-900 px-3 py-2.5 rounded-lg font-medium transition cursor-pointer";
+
+                const badgeContador = totalItens > 0 
+                    ? `<span class="${ehAtiva ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'} text-xs px-2 py-0.5 rounded-full font-bold">${totalItens}</span>`
+                    : '';
+
+                container.innerHTML += `
+                    <div onclick="mudarCategoria('${cat.id}')" class="${classeEstilo}">
+                        <span class="flex items-center gap-2"><span>${cat.icone}</span> ${cat.nome}</span>
+                        ${badgeContador}
+                    </div>
+                `;
+            });
+        }
+
+        // 3. FUNÇÃO PARA RENDERIZAR OS CARDS DA CATEGORIA SELECIONADA
+        function renderizarConteudos() {
+            const container = document.getElementById('lista-conteudos');
+            const tituloCabecalho = document.getElementById('titulo-categoria-ativa');
+            container.innerHTML = '';
+
+            // Busca os dados da categoria ativa
+            const categoriaAtiva = bancoCategorias.find(cat => cat.id === categoriaAtivaId);
+            if (!categoriaAtiva) return;
+
+            // Atualiza o título do topo
+            tituloCabecalho.innerHTML = `<span>${categoriaAtiva.icone}</span> ${categoriaAtiva.nome}`;
+
+            // Filtra e ordena os conteúdos baseados no campo 'ordem'
+            const itensFiltrados = bancoConteudos
+                .filter(item => item.categoria_id === categoriaAtivaId)
+                .sort((a, b) => a.ordem - b.ordem);
+
+            if (itensFiltrados.length === 0) {
+                container.innerHTML = `<p class="text-sm text-slate-400 text-center py-8">Nenhum conteúdo adicionado nesta trilha ainda.</p>`;
+                atualizarProgresso(0);
+                return;
+            }
+
+            // Calcula o progresso matemático
+            const concluidos = itensFiltrados.filter(i => i.status === 'concluido').length;
+            const percentual = Math.round((concluidos / itensFiltrados.length) * 100);
+            atualizarProgresso(percentual);
+
+            // Desenha os cards na tela
+            itensFiltrados.forEach((item, index) => {
+                const numeroFormatado = String(index + 1).padStart(2, '0');
+                
+                // Customização baseada no tipo (Vídeo ou PDF)
+                const tagTipo = item.tipo === 'video' 
+                    ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-100 mb-1.5">🎬 VÍDEO DO YOUTUBE</span>`
+                    : `<span class="inline-flex items-center gap-1 text-[11px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-100 mb-1.5">📄 ARQUIVO PDF</span>`;
+
+                const bordaDestaque = item.status === 'lendo' ? 'border-l-4 border-l-amber-500' : '';
+
+                // Customização do botão e status
+                let statusHtml = '';
+                let botaoHtml = '';
+
+                if (item.status === 'concluido') {
+                    statusHtml = `<span class="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200/60">Concluído</span>`;
+                    botaoHtml = `<button onclick="alterarStatus('${item.id}', 'pendente')" class="bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-medium py-1.5 px-3 rounded-lg transition whitespace-nowrap shadow-sm">Reassistir</button>`;
+                } else if (item.status === 'lendo') {
+                    statusHtml = `<span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-1 rounded border border-amber-200/60">Lendo</span>`;
+                    botaoHtml = `<button onclick="alterarStatus('${item.id}', 'concluido')" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition whitespace-nowrap shadow-sm">Concluir</button>`;
+                } else {
+                    statusHtml = `<span class="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded border border-slate-100">Não iniciado</span>`;
+                    botaoHtml = `<button onclick="alterarStatus('${item.id}', 'concluido')" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-medium py-1.5 px-3 rounded-lg transition whitespace-nowrap shadow-sm">${item.tipo === 'video' ? 'Iniciar Vídeo' : 'Abrir PDF'}</button>`;
+                }
+
+                container.innerHTML += `
+                    <div class="flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition shadow-sm group ${bordaDestaque}">
+                        <div class="text-slate-300 font-mono font-bold text-lg px-1 group-hover:text-slate-500 transition select-none">${numeroFormatado}</div>
+                        <div class="flex-1 min-w-0 sm:flex sm:items-center sm:justify-between gap-4">
+                            <div>
+                                ${tagTipo}
+                                <h3 class="text-base font-semibold text-slate-800 truncate">${item.titulo}</h3>
+                                <p class="text-xs text-slate-400 mt-0.5">${item.tipo === 'video' ? 'Canal' : 'Autor'}: ${item.autor} • ${item.metadado}</p>
+                            </div>
+                            <div class="flex items-center gap-3 mt-3 sm:mt-0 justify-end">
+                                ${statusHtml}
+                                ${botaoHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 4. FUNÇÕES DE INTERAÇÃO E ALTERAÇÃO DE ESTADO
+        function mudarCategoria(id) {
+            categoriaAtivaId = id;
+            renderizarCategorias();
+            renderizarContents(); // Recarrega os cards baseados na nova categoria
+        }
+
+        function atualizarProgresso(porcentagem) {
+            document.getElementById('texto-progresso').innerText = `${porcentagem}% concluído`;
+            document.getElementById('barra-progresso').style.width = `${porcentagem}%`;
+        }
+
+        function alterarStatus(idItem, novoStatus) {
+            // Procura o item no nosso banco simulado e altera o status dele
+            const item = bancoConteudos.find(i => i.id === idItem);
+            if (item) {
+                item.status = novoStatus;
+                // Atualiza a tela imediatamente refletindo a mudança do banco
+                renderizarConteudos();
+                renderizarCategorias();
+            }
+        }
+
+        function adicionarCategoria() {
+            const nome = prompt("Digite o nome da nova categoria:");
+            if (!nome) return;
+            const novoId = 'cat_' + (bancoCategorias.length + 1);
+            
+            // Dá um "Insert" no banco de dados simulado
+            bancoCategorias.push({ id: novoId, nome: nome, icone: '📁' });
+            
+            mudarCategoria(novoId); // Muda para a categoria criada
+        }
+
+        function adicionarConteudo() {
+            const titulo = prompt("Título do conteúdo:");
+            if (!titulo) return;
+            const tipo = prompt("Tipo (digite 'video' ou 'pdf'):").toLowerCase();
+            if (tipo !== 'video' && tipo !== 'pdf') return;
+
+            // Calcula a ordem baseado em quantos itens já existem na categoria ativa
+            const totalNaCategoria = bancoConteudos.filter(i => i.categoria_id === categoriaAtivaId).length;
+
+            bancoConteudos.push({
+                id: String(bancoConteudos.length + 1),
+                categoria_id: categoriaAtivaId,
+                titulo: titulo,
+                tipo: tipo,
+                url: '#',
+                autor: 'Adicionado pelo Usuário',
+                metadado: tipo === 'video' ? '0 min' : '0 págs',
+                status: 'pendente',
+                ordem: totalNaCategoria + 1
+            });
+
+            renderizarConteudos();
+            renderizarCategorias();
+        }
+
+        // INICIALIZAÇÃO AUTOMÁTICA DA PÁGINA AO ABRIR
+        renderizarCategorias();
+        renderizarConteudos();
+    </script>
+</body>
+</html>
