@@ -35,7 +35,7 @@
         </div>
     </div>
 
-    <!-- ================= DASHBOARD PRINCIPAL (OCULTO POR PADRÃO) ================= -->
+    <!-- ================= DASHBOARD PRINCIPAL ================= -->
     <div id="painel-principal" class="hidden h-screen overflow-hidden">
         <div class="flex h-screen w-full">
             
@@ -59,7 +59,7 @@
                     </nav>
                 </div>
 
-                <!-- Rodapé da Sidebar (Infos do Usuário Logado) -->
+                <!-- Rodapé da Sidebar -->
                 <div class="border-t border-slate-100 pt-4 flex items-center justify-between">
                     <div class="flex items-center gap-2">
                         <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm" id="avatar-usuario">U</div>
@@ -119,11 +119,12 @@
 
     <!-- ================= CONFIGURAÇÃO E LÓGICA SUPABASE ================= -->
     <script>
-        // CONFIGURAÇÃO DO SEU PROJETO REAL (Substitua pelos seus dados)
+        // Configuração com URL e alteração no construtor para evitar conflito global
         const SUPABASE_URL = 'https://wjcdcuxvweguzdbatvtz.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_WUEPQDtOgAd71hpTPJr_Fg_e_fF31TK';
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Alterado de 'supabase' para 'supabaseClient' para resolver o erro da imagem_98ed27.png
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let usuarioLogado = null;
         let categoriasCache = [];
@@ -131,7 +132,7 @@
 
         // VERIFICA SE JÁ EXISTE SESSÃO ATIVA AO CARREGAR A PÁGINA
         window.addEventListener('DOMContentLoaded', async () => {
-            const { data: { session } } = await supabase.auth.getSession();
+            const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
                 configurarSessao(session.user);
             } else {
@@ -157,30 +158,30 @@
         async function handleCadastro() {
             const email = document.getElementById('auth-email').value;
             const senha = document.getElementById('auth-senha').value;
-            const { data, error } = await supabase.auth.signUp({ email, password: senha });
+            const { data, error } = await supabaseClient.auth.signUp({ email, password: senha });
             
             if (error) alert("Erro no cadastro: " + error.message);
-            else alert("Cadastro realizado com sucesso! Você já pode entrar.");
+            else alert("Cadastro realizado com sucesso! Você já pode clicar em Entrar.");
         }
 
         async function handleLogin() {
             const email = document.getElementById('auth-email').value;
             const senha = document.getElementById('auth-senha').value;
-            const { data, error } = await supabase.auth.signInWithPassword({ email, password: senha });
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: senha });
             
             if (error) alert("Erro no login: " + error.message);
             else configurarSessao(data.user);
         }
 
         async function handleLogout() {
-            await supabase.auth.signOut();
+            await supabaseClient.auth.signOut();
             usuarioLogado = null;
             mostrarTelaLogin();
         }
 
         // OPERAÇÕES DO BANCO DE DADOS (CRUD REAL)
         async function carregarCategorias() {
-            const { data, error } = await supabase.from('categories').select('*').order('nome');
+            const { data, error } = await supabaseClient.from('categories').select('*').order('nome');
             if (error) return console.error(error);
             
             categoriasCache = data;
@@ -215,7 +216,7 @@
             const catAtiva = categoriasCache.find(c => c.id === categoriaAtivaId);
             if (catAtiva) tituloCabecalho.innerHTML = `<span>${catAtiva.icone}</span> ${catAtiva.nome}`;
 
-            const { data: itens, error } = await supabase.from('contents').select('*').eq('categoria_id', categoriaAtivaId).order('ordem');
+            const { data: itens, error } = await supabaseClient.from('contents').select('*').eq('categoria_id', categoriaAtivaId).order('ordem');
             if (error) return console.error(error);
 
             if (itens.length === 0) {
@@ -270,7 +271,7 @@
             if (!nome) return;
             const icone = prompt("Insira um emoji para a categoria:", "📁");
 
-            const { data, error } = await supabase.from('categories').insert([{ user_id: usuarioLogado.id, nome, icone }]).select();
+            const { data, error } = await supabaseClient.from('categories').insert([{ user_id: usuarioLogado.id, nome, icone }]).select();
             if (error) alert(error.message);
             else {
                 categoriaAtivaId = data[0].id;
@@ -286,12 +287,12 @@
             if (tipo !== 'video' && tipo !== 'pdf') return alert("Tipo inválido!");
             const url = prompt("Cole o Link completo (do YouTube ou do arquivo PDF):");
             if (!url) return;
-            const autor = prompt("Nome do Canal ou Autor (Opcional):", isNaN(tipo) && tipo === 'video' ? 'Canal do YouTube' : 'Autor');
+            const autor = prompt("Nome do Canal ou Autor (Opcional):", tipo === 'video' ? 'Canal do YouTube' : 'Autor');
 
-            const { data: existentes } = await supabase.from('contents').select('id').eq('categoria_id', categoriaAtivaId);
+            const { data: existentes } = await supabaseClient.from('contents').select('id').eq('categoria_id', categoriaAtivaId);
             const ordem = (existentes?.length || 0) + 1;
 
-            const { error } = await supabase.from('contents').insert([{
+            const { error } = await supabaseClient.from('contents').insert([{
                 categoria_id: categoriaAtivaId,
                 user_id: usuarioLogado.id,
                 titulo,
@@ -306,7 +307,7 @@
         }
 
         async function alterarStatus(idItem, novoStatus) {
-            const { error } = await supabase.from('contents').update({ status: novoStatus }).eq('id', idItem);
+            const { error } = await supabaseClient.from('contents').update({ status: novoStatus }).eq('id', idItem);
             if (error) console.error(error);
             else carregarConteudos();
         }
