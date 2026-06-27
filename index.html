@@ -7,6 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Importação oficial do SDK do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+        /* Esconde a barra de rolagem visual do sistema para manter o design clean */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
@@ -39,7 +44,7 @@
     <div id="painel-principal" class="hidden h-screen overflow-hidden">
         <div class="flex h-screen w-full">
             
-            <!-- PAINEL LATERAL (SIDEBAR) -->
+            <!-- PAINEL LATERAL (SIDEBAR) - VISÍVEL APENAS EM PC/TABLET -->
             <aside class="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 p-5 justify-between">
                 <div>
                     <div class="flex items-center justify-between mb-5">
@@ -61,32 +66,46 @@
 
                 <!-- Rodapé da Sidebar -->
                 <div class="border-t border-slate-100 pt-4 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm" id="avatar-usuario">U</div>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0" id="avatar-usuario">U</div>
                         <div class="min-w-0">
                             <p class="text-xs font-semibold text-slate-900 truncate" id="email-usuario">usuario@teste.com</p>
                         </div>
                     </div>
-                    <button onclick="handleLogout()" class="text-xs text-red-500 hover:text-red-700 font-medium">Sair</button>
+                    <button onclick="handleLogout()" class="text-xs text-red-500 hover:text-red-700 font-medium ml-2">Sair</button>
                 </div>
             </aside>
 
-            <!-- ÁREA DE CONTEÚDO PRINCIPAL -->
+            <!-- ÁREA DE CONTEÚDO PRINCIPAL (PC E CELULAR) -->
             <main class="flex-1 flex flex-col bg-slate-50 overflow-y-auto">
-                <header class="flex items-center justify-between p-4 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-                    <div class="flex items-center gap-2 md:hidden">
+                
+                <!-- TOPBAR RESPONSIVA -->
+                <header class="flex items-center justify-between p-4 border-b border-slate-200 bg-white sticky top-0 z-20">
+                    <div class="flex items-center gap-2">
                         <span class="text-xl">🧠</span>
                         <h1 class="text-lg font-bold text-slate-900">MindHub</h1>
                     </div>
                     <div class="hidden md:block text-xs font-medium text-slate-400 uppercase tracking-wider">
                         Conectado à Nuvem do Supabase
                     </div>
-                    <button onclick="handleLogout()" class="md:hidden text-xs text-red-500 font-medium">Sair</button>
+                    <button onclick="handleLogout()" class="text-xs text-red-500 font-semibold bg-red-50 hover:bg-red-100 px-3 py-1 rounded-lg transition">Sair</button>
                 </header>
 
+                <!-- BARRA DE CATEGORIAS EXCLUSIVA PARA CELULAR (Fica oculta no PC) -->
+                <div class="md:hidden bg-white border-b border-slate-200 p-3 sticky top-[57px] z-10 flex items-center gap-2 overflow-x-auto whitespace-nowrap no-scrollbar">
+                    <button onclick="adicionarCategoria()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-1.5 px-3 rounded-lg shrink-0 shadow-sm">
+                        + Nova Categoria
+                    </button>
+                    <!-- Divisória sutil -->
+                    <div class="h-4 w-[1px] bg-slate-200 shrink-0 mx-1"></div>
+                    <!-- Área onde o JavaScript vai injetar os botões de categorias no celular -->
+                    <div id="lista-categorias-mobile" class="flex items-center gap-1.5"></div>
+                </div>
+
+                <!-- CORPO DO PAINEL DE CONTEÚDOS -->
                 <div class="max-w-4xl w-full mx-auto p-4 md:p-8 space-y-6">
                     
-                    <!-- CABEÇALHO DINÂMICO -->
+                    <!-- CABEÇALHO DA TRILHA ATIVA -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
                         <div>
                             <span class="text-xs font-bold text-emerald-600 uppercase tracking-wide block mb-1">Trilha de Estudos</span>
@@ -105,6 +124,7 @@
                         </div>
                     </div>
 
+                    <!-- BARRA DE AÇÃO RAPIDA DO CONTEÚDO -->
                     <div class="flex items-center justify-between text-xs font-medium text-slate-400 uppercase tracking-wider border-b border-slate-200 pb-2 px-1">
                         <span>Fluxo de Conteúdos Sequencial</span>
                         <button onclick="adicionarConteudo()" class="text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 transition normal-case text-sm">+ Adicionar Conteúdo</button>
@@ -119,18 +139,15 @@
 
     <!-- ================= CONFIGURAÇÃO E LÓGICA SUPABASE ================= -->
     <script>
-        // Configuração com URL e alteração no construtor para evitar conflito global
         const SUPABASE_URL = 'https://wjcdcuxvweguzdbatvtz.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_WUEPQDtOgAd71hpTPJr_Fg_e_fF31TK';
 
-        // Alterado de 'supabase' para 'supabaseClient' para resolver o erro da imagem_98ed27.png
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let usuarioLogado = null;
         let categoriasCache = [];
         let categoriaAtivaId = null;
 
-        // VERIFICA SE JÁ EXISTE SESSÃO ATIVA AO CARREGAR A PÁGINA
         window.addEventListener('DOMContentLoaded', async () => {
             const { data: { session } } = await supabaseClient.auth.getSession();
             if (session) {
@@ -154,7 +171,6 @@
             document.getElementById('tela-autenticacao').classList.remove('hidden');
         }
 
-        // FUNÇÕES DE AUTENTICAÇÃO REAL
         async function handleCadastro() {
             const email = document.getElementById('auth-email').value;
             const senha = document.getElementById('auth-senha').value;
@@ -179,14 +195,17 @@
             mostrarTelaLogin();
         }
 
-        // OPERAÇÕES DO BANCO DE DADOS (CRUD REAL)
+        // CARREGA AS CATEGORIAS PARA OS DOIS LAYOUTS (PC E CELULAR)
         async function carregarCategorias() {
             const { data, error } = await supabaseClient.from('categories').select('*').order('nome');
             if (error) return console.error(error);
             
             categoriasCache = data;
-            const container = document.getElementById('lista-categorias');
-            container.innerHTML = '';
+            const containerDesktop = document.getElementById('lista-categorias');
+            const containerMobile = document.getElementById('lista-categorias-mobile');
+            
+            containerDesktop.innerHTML = '';
+            containerMobile.innerHTML = '';
 
             if(data.length > 0 && !categoriaAtivaId) {
                 categoriaAtivaId = data[0].id;
@@ -194,10 +213,19 @@
 
             data.forEach(cat => {
                 const ehAtiva = cat.id === categoriaAtivaId;
-                container.innerHTML += `
+                
+                // Injeta na Sidebar do Computador
+                containerDesktop.innerHTML += `
                     <div onclick="selecionarCategoria('${cat.id}')" class="flex items-center justify-between ${ehAtiva ? 'bg-emerald-50 text-emerald-700' : 'text-slate-600 hover:bg-slate-50'} px-3 py-2.5 rounded-lg font-medium transition cursor-pointer">
                         <span class="flex items-center gap-2"><span>${cat.icone || '📁'}</span> ${cat.nome}</span>
                     </div>
+                `;
+
+                // Injeta na Barra Horizontal do Celular
+                containerMobile.innerHTML += `
+                    <button onclick="selecionarCategoria('${cat.id}')" class="text-xs font-semibold px-3 py-1.5 rounded-lg transition shrink-0 ${ehAtiva ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600 border border-transparent hover:bg-slate-200'}">
+                        ${cat.icone || '📁'} ${cat.nome}
+                    </button>
                 `;
             });
             carregarConteudos();
@@ -213,7 +241,7 @@
                 return;
             }
 
-            const catAtiva = categoriasCache.find(c => c.id === categoriaAtivaId);
+            const catAtiva = Cancer = categoriesCache = nutritionalCache = categoriasCache.find(c => c.id === categoriaAtivaId);
             if (catAtiva) tituloCabecalho.innerHTML = `<span>${catAtiva.icone}</span> ${catAtiva.nome}`;
 
             const { data: itens, error } = await supabaseClient.from('contents').select('*').eq('categoria_id', categoriaAtivaId).order('ordem');
@@ -241,10 +269,10 @@
                     <div class="flex items-center gap-4 bg-white p-4 rounded-xl border border-slate-200 hover:border-slate-300 transition shadow-sm">
                         <div class="text-slate-300 font-mono font-bold text-lg px-1">${num}</div>
                         <div class="flex-1 min-w-0 sm:flex sm:items-center sm:justify-between gap-4">
-                            <div>
+                            <div class="min-w-0">
                                 ${tag}
                                 <h3 class="text-base font-semibold text-slate-800 truncate">${item.titulo}</h3>
-                                <p class="text-xs text-slate-400 mt-0.5">${item.autor_canal || 'Sem autor'} • <a href="${item.url_arquivo}" target="_blank" class="text-emerald-600 hover:underline">Acessar link original</a></p>
+                                <p class="text-xs text-slate-400 mt-0.5 truncate">${item.autor_canal || 'Sem autor'} • <a href="${item.url_arquivo}" target="_blank" class="text-emerald-600 hover:underline">Acessar link original</a></p>
                             </div>
                             <div class="flex items-center gap-3 mt-3 sm:mt-0 justify-end">
                                 ${statusBadge}
