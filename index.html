@@ -123,7 +123,7 @@
         const SUPABASE_URL = 'https://wjcdcuxvweguzdbatvtz.supabase.co'; 
         const SUPABASE_ANON_KEY = 'sb_publishable_WUEPQDtOgAd71hpTPJr_Fg_e_fF31TK';
 
-        const supabase = Supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let usuarioLogado = null;
         let categoriasCache = [];
